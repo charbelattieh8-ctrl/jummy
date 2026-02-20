@@ -1,0 +1,435 @@
+/*
+ * Main stylesheet for Delights by Jummy website.
+ *
+ * This file defines the colour palette, layout styles, responsive
+ * behaviour and animations used across the site. A colourful
+ * aesthetic, glowing text effects and smooth scroll animations
+ * create a friendly, inviting atmosphere for visitors. The glow
+ * animation uses CSS keyframes and the text-shadow property as
+ * demonstrated in the W3Schools example on glowing text【889354993521924†L920-L937】.
+ */
+
+:root {
+  --primary-color: #e67e22;    /* vibrant orange */
+  --secondary-color: #16a085;  /* teal accent */
+  --accent-color: #f1c40f;     /* warm yellow */
+  --bg-color: #fefefe;         /* light background */
+  --text-color: #333333;       /* dark text */
+}
+
+/* Global resets */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Poppins', sans-serif;
+  line-height: 1.6;
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  overflow-x: hidden;
+}
+
+/* Navigation styles */
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+}
+
+nav .logo {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.5rem;
+  color: #ffffff;
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  gap: 1.5rem;
+}
+
+nav ul li a {
+  color: #ffffff;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+nav ul li a:hover {
+  color: var(--accent-color);
+}
+
+/* Hamburger menu for mobile */
+.hamburger {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.hamburger span {
+  width: 25px;
+  height: 3px;
+  background-color: #ffffff;
+  transition: transform 0.3s ease;
+}
+
+/* Hero section */
+.hero {
+  position: relative;
+  height: 100vh;
+  background-image: url('assets/images/hero.jpg');
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #ffffff;
+}
+
+/* Dark overlay for readability */
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Dark overlay increases contrast for white text so tagline remains legible */
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 0;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 0 1rem;
+}
+
+.hero .tagline {
+  font-size: 1.25rem;
+  letter-spacing: 1px;
+  /* Subtle glow to make the tagline stand out over the hero image */
+  color: #f5f5f5;
+  text-shadow: 0 0 5px var(--primary-color);
+}
+
+/* Headline (no glow animation; subtle shadow only) */
+.glow {
+  font-size: 3.5rem;
+  font-family: 'Playfair Display', serif;
+  text-shadow: 0 6px 18px rgba(0, 0, 0, 0.6);
+}
+
+/* Utility glow (used for buttons/cards only) */
+.soft-glow {
+  box-shadow: 0 0 14px rgba(230, 126, 34, 0.35);
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  padding: 0.75rem 2rem;
+  border-radius: 30px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 0 10px var(--primary-color);
+}
+
+.btn:hover {
+  background-color: var(--secondary-color);
+  box-shadow: 0 0 15px var(--secondary-color);
+}
+
+/* Section styling */
+section {
+  padding: 5rem 1rem;
+}
+
+.about, .menu, .contact {
+  background-color: #ffffff;
+  max-width: 1200px;
+  margin: 0 auto;
+  border-radius: 15px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+  margin-top: 4rem;
+  padding: 3rem 2rem;
+}
+
+.about h2, .menu h2, .contact h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  font-size: 2rem;
+  color: var(--primary-color);
+}
+
+.about p {
+  font-size: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+  line-height: 1.7;
+}
+
+/* Menu section */
+.menu-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+}
+
+.menu-item {
+  background-color: var(--bg-color);
+  border-radius: 10px;
+  padding: 1.5rem;
+  width: 300px;
+  text-align: center;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.menu-item:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+.menu-item img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+}
+
+/* Cart drawer */
+.cart-fab {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cart-count {
+  background: var(--accent-color);
+  color: #111;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: none;
+  z-index: 2000;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: -420px;
+  height: 100vh;
+  width: min(420px, 92vw);
+  background: #ffffff;
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.25);
+  z-index: 2100;
+  transition: right 0.25s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer.open { right: 0; }
+.drawer-backdrop.open { display: block; }
+
+.drawer-header {
+  padding: 1rem;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.drawer-body {
+  padding: 1rem;
+  overflow: auto;
+  flex: 1;
+}
+
+.cart-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+.cart-row .title { font-weight: 600; }
+.cart-row .meta { font-size: 0.9rem; color: #555; }
+
+.qty {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.qty button {
+  border: 1px solid #ddd;
+  background: #fafafa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.drawer-footer {
+  padding: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.totals {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+}
+
+.menu-item h3 {
+  margin-bottom: 0.5rem;
+  color: var(--secondary-color);
+  font-size: 1.25rem;
+}
+
+.menu-item p {
+  font-size: 0.9rem;
+  color: var(--text-color);
+  line-height: 1.5;
+}
+
+/* Contact section */
+.contact form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.form-group {
+  display: flex;
+}
+
+.contact input,
+.contact textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+.contact textarea {
+  resize: vertical;
+}
+
+.contact-info {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 1rem;
+}
+
+.contact-info p {
+  margin-bottom: 0.5rem;
+}
+
+.contact-info i {
+  margin-right: 0.5rem;
+  color: var(--primary-color);
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: var(--primary-color);
+  color: #ffffff;
+  margin-top: 3rem;
+  font-size: 0.9rem;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  nav ul {
+    display: none;
+    position: absolute;
+    top: 70px;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.95);
+    width: 200px;
+    flex-direction: column;
+    gap: 0;
+    border-radius: 5px;
+    padding: 1rem 0;
+  }
+
+  nav ul.active {
+    display: flex;
+  }
+
+  nav ul li {
+    margin: 0;
+  }
+
+  nav ul li a {
+    padding: 0.75rem 1.5rem;
+    display: block;
+  }
+
+  .hamburger {
+    display: flex;
+  }
+
+  .hero .glow {
+    font-size: 2.5rem;
+  }
+
+  .about, .menu, .contact {
+    padding: 2rem 1rem;
+  }
+
+  .menu-item {
+    width: 100%;
+  }
+}

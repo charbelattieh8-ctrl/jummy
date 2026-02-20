@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delights by Jummy</title>
+    <!-- External stylesheets -->
+    <link rel="stylesheet" href="styles.css">
+    <!-- Google Fonts for typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <!-- AOS library for scroll animations (version 2.3.4 from cdnjs) 【558179858247857†L38-L40】 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css">
+    <!-- Font Awesome for icons -->
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <!-- Hero section with navigation and headline -->
+    <header class="hero" id="home">
+        <nav>
+            <div class="logo">Delights by Jummy</div>
+            <ul class="nav-links">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#menu">Menu</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+            <button class="cart-fab" id="open-cart" type="button" title="Open cart">
+                <span>Cart</span>
+                <span class="cart-count" id="cart-count">0</span>
+            </button>
+            <div class="hamburger" aria-label="Toggle navigation" tabindex="0">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </nav>
+        <div class="hero-content" data-aos="fade-up">
+            <h1 class="glow">Delights by Jummy</h1>
+            <p class="tagline">Daily &amp; Homemade Food</p>
+            <a href="#menu" class="btn">Explore Menu</a>
+        </div>
+    </header>
+    
+    <main>
+        <!-- About section -->
+        <section id="about" class="about" data-aos="fade-up">
+            <h2>About Us</h2>
+            <p>At Delights by Jummy, we bring the comfort of homemade meals to your table every day. Our passion for fresh ingredients and traditional recipes ensures each dish is a celebration of taste and love. Whether you're craving hearty stews, wholesome salads or decadent desserts, our kitchen serves up happiness on a plate.</p>
+        </section>
+        
+        <!-- Menu section -->
+        <section id="menu" class="menu" data-aos="fade-up">
+            <h2>Our Menu</h2>
+            <div class="menu-items" id="menu-items">
+                <!-- Populated by script.js from the backend -->
+            </div>
+        </section>
+        
+        <!-- Contact section with form and contact details -->
+        <section id="contact" class="contact" data-aos="fade-up">
+            <h2>Contact Us</h2>
+            <form id="contact-form">
+                <div class="form-group">
+                    <input type="text" id="name" placeholder="Your Name" required>
+                </div>
+                <div class="form-group">
+                    <input type="email" id="email" placeholder="Your Email" required>
+                </div>
+                <div class="form-group">
+                    <textarea id="message" rows="5" placeholder="Your Message" required></textarea>
+                </div>
+                <button type="submit" class="btn">Send Message</button>
+            </form>
+            <div class="contact-info">
+                <p><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Beirut, Lebanon</p>
+                <p><i class="fas fa-phone-alt" aria-hidden="true"></i> +961&nbsp;123456</p>
+                <p><i class="fas fa-envelope" aria-hidden="true"></i> info@delightsbyjummy.com</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Cart drawer -->
+    <div class="drawer-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
+    <aside class="drawer" id="cart-drawer" aria-label="Shopping cart" aria-hidden="true">
+        <div class="drawer-header">
+            <strong>Your Cart</strong>
+            <button type="button" id="close-cart" aria-label="Close cart">✕</button>
+        </div>
+        <div class="drawer-body" id="cart-rows">
+            <!-- Filled by script.js -->
+        </div>
+        <div class="drawer-footer">
+            <div class="totals">
+                <span>Total</span>
+                <span id="cart-total">$0.00</span>
+            </div>
+            <button class="btn" id="checkout" type="button">Checkout</button>
+            <p style="margin-top:0.75rem; font-size:0.85rem; color:#666;">Admin? <a href="admin.html">Open admin page</a></p>
+        </div>
+    </aside>
+    
+    <footer>
+        <p>&copy; 2026 Delights by Jummy. All rights reserved.</p>
+    </footer>
+
+    <!-- AOS JavaScript library for scroll animations (version 2.3.4 from cdnjs) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
+    <!-- Our custom JavaScript -->
+    <script src="script.js"></script>
+</body>
+</html>

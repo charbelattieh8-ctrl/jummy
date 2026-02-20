@@ -1,0 +1,30 @@
+[
+  {
+    "id": "item-2",
+    "name": "Soups & Stews",
+    "description": "Comforting bowls simmered slowly for deep flavour.",
+    "price": 6,
+    "image": "assets/images/menu2.jpg"
+  },
+  {
+    "id": "item-3",
+    "name": "Desserts",
+    "description": "Homemade sweets to finish your meal with a smile.",
+    "price": 4,
+    "image": "assets/images/menu3.jpg"
+  },
+  {
+    "id": "item_24a9f6a6-d8cc-4f5d-82dc-c211c5960bc0",
+    "name": "khara",
+    "description": "sixx seveenn",
+    "price": 67,
+    "image": "assets/images/menu2.jpg"
+  },
+  {
+    "id": "item_3b8c9306-2237-4574-9f22-10b0daa7848d",
+    "name": "pipi",
+    "description": "hola soy dora",
+    "price": 67,
+    "image": "assets/images/menu1.jpg"
+  }
+]

@@ -1,0 +1,20 @@
+[
+  {
+    "id": "ord_bb9e0e05-7eb5-414f-b1e7-660e19c948f3",
+    "createdAt": "2026-02-20T21:58:17.298Z",
+    "customer": {
+      "name": "diego",
+      "phone": "67",
+      "address": "67"
+    },
+    "items": [
+      {
+        "id": "item_3b8c9306-2237-4574-9f22-10b0daa7848d",
+        "name": "pipi",
+        "price": 67,
+        "qty": 4
+      }
+    ],
+    "total": 268
+  }
+]
