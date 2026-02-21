@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin • Delights by Jummy</title>
+  <title>Admin - Delights by Jummy</title>
   <link rel="stylesheet" href="styles.css" />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body { background: #fff; }
+    body { background: #fffafb; }
     .admin-wrap { max-width: 1100px; margin: 120px auto 40px; padding: 0 16px; }
+    .login-wrap { max-width: 460px; margin: 140px auto 40px; padding: 0 16px; }
     .admin-grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 18px; }
     .card { background: #fff; border: 1px solid #eee; border-radius: 14px; box-shadow: 0 10px 20px rgba(0,0,0,0.06); }
     .card h3 { padding: 16px; border-bottom: 1px solid #f2f2f2; }
@@ -26,20 +27,31 @@
     .topbar { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
     .preview { margin-top: 8px; }
     .preview img { width: 100%; max-height: 180px; object-fit: cover; border: 1px solid #eee; border-radius: 10px; display: none; }
+    #admin-app { display: none; }
   </style>
 </head>
 <body>
   <nav>
-    <div class="logo">Delights by Jummy • Admin</div>
-    <ul class="nav-links">
-      <li><a href="index.html">Back to site</a></li>
-    </ul>
+    <div class="logo">Delights by Jummy - Admin</div>
   </nav>
 
-  <main class="admin-wrap">
+  <main class="login-wrap" id="login-screen">
+    <section class="card" aria-label="Admin Login">
+      <h3>Admin Login</h3>
+      <div class="body">
+        <form id="login-form">
+          <label for="password">Admin password</label>
+          <input id="password" type="password" placeholder="Enter admin password" required />
+          <button class="btn" type="submit" style="margin-top:12px; width:100%;">Sign in</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <main class="admin-wrap" id="admin-app">
     <div class="topbar">
       <div>
-        <h2 style="color:#e67e22;">Menu Control Panel</h2>
+        <h2 style="color:#c88f99;">Menu Control Panel</h2>
         <p class="muted">Add, edit, delete items, and set prices. You control what customers see.</p>
         <p class="muted" id="server-status" style="margin-top:6px;">Server: checking...</p>
       </div>
@@ -58,16 +70,9 @@
       </section>
 
       <section class="card" aria-label="Editor">
-        <h3 id="editor-title">Admin Login</h3>
+        <h3 id="editor-title">Edit / Add Item</h3>
         <div class="body">
-          <form id="login-form">
-            <label for="password">Admin password</label>
-            <input id="password" type="password" placeholder="Set it in server env ADMIN_PASSWORD" required />
-            <button class="btn" type="submit" style="margin-top:12px; width:100%;">Sign in</button>
-            <p class="muted" style="margin-top:10px;">Default password is <strong>admin123</strong> (change it).</p>
-          </form>
-
-          <form id="edit-form" style="display:none;">
+          <form id="edit-form">
             <input type="hidden" id="item-id" />
             <label for="name">Name</label>
             <input id="name" required />
@@ -91,7 +96,7 @@
             <textarea id="description" rows="4"></textarea>
 
             <button class="btn" type="submit" style="margin-top:12px; width:100%;">Save</button>
-            <button class="btn small" id="new-item" type="button" style="margin-top:10px; width:100%; background:#16a085;">New item</button>
+            <button class="btn small" id="new-item" type="button" style="margin-top:10px; width:100%; background:#8e7077;">New item</button>
           </form>
         </div>
       </section>
@@ -112,6 +117,6 @@
     </section>
   </main>
 
-  <script src="admin.js?v=2"></script>
+  <script src="admin.js?v=3"></script>
 </body>
 </html>

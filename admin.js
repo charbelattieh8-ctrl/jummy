@@ -30,11 +30,9 @@ function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
-function setEditorMode(isAuthed) {
-  document.getElementById('login-form').style.display = isAuthed ? 'none' : 'block';
-  document.getElementById('edit-form').style.display = isAuthed ? 'block' : 'none';
-  document.getElementById('editor-title').textContent = isAuthed ? 'Edit / Add Item' : 'Admin Login';
-  document.getElementById('logout').style.display = isAuthed ? 'inline-block' : 'none';
+function setAuthState(isAuthed) {
+  document.getElementById('login-screen').style.display = isAuthed ? 'none' : 'block';
+  document.getElementById('admin-app').style.display = isAuthed ? 'block' : 'none';
 }
 
 function setServerStatus(text, isError = false) {
@@ -206,27 +204,30 @@ async function loadMessages() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  setEditorMode(Boolean(getToken()));
+  // Always require login when opening admin page.
+  setToken('');
+  setAuthState(false);
 
   try {
     const health = await fetchJSON('/api/health', { headers: { 'X-Admin-Token': '' } });
     const status = health.requireAdminPassword ? 'password required' : 'password bypass on';
     setServerStatus(`Server: ${health.name} v${health.version} (${status}, db: ${health.database})`);
-    if (!health.requireAdminPassword) setEditorMode(true);
   } catch (err) {
     setServerStatus(`Server: not reachable (${err.message})`, true);
   }
 
   document.getElementById('clear-login').onclick = () => {
     setToken('');
-    setEditorMode(false);
+    setAuthState(false);
+    document.getElementById('password').value = '';
     document.getElementById('orders').innerHTML = '<p class="muted">Sign in to view orders.</p>';
     document.getElementById('messages').innerHTML = '<p class="muted">Sign in to view messages.</p>';
   };
 
   document.getElementById('logout').onclick = () => {
     setToken('');
-    setEditorMode(false);
+    setAuthState(false);
+    document.getElementById('password').value = '';
     document.getElementById('orders').innerHTML = '<p class="muted">Sign in to view orders.</p>';
     document.getElementById('messages').innerHTML = '<p class="muted">Sign in to view messages.</p>';
   };
@@ -241,7 +242,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         headers: { 'X-Admin-Token': '' },
       });
       setToken(token);
-      setEditorMode(true);
+      setAuthState(true);
       await loadMenuList();
       await loadOrders();
       await loadMessages();
@@ -293,10 +294,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  // Public menu list loads even when not authed; buttons will fail without login.
-  await loadMenuList();
-  if (getToken()) {
-    await loadOrders();
-    await loadMessages();
-  }
+  // No admin data is loaded until successful login.
 });
