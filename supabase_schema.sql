@@ -15,6 +15,7 @@ create table if not exists menu_items (
 create table if not exists orders (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
+  status text not null default 'pending',
   customer_name text,
   customer_phone text not null,
   customer_address text not null,
@@ -23,6 +24,9 @@ create table if not exists orders (
 );
 
 create index if not exists idx_orders_created_at on orders (created_at desc);
+create index if not exists idx_orders_status on orders (status);
+alter table orders add column if not exists status text default 'pending';
+update orders set status = 'pending' where status is null or btrim(status) = '';
 
 create table if not exists contact_messages (
   id uuid primary key default gen_random_uuid(),
@@ -47,7 +51,8 @@ begin
   else
     alter table orders
       alter column customer_phone set not null,
-      alter column customer_address set not null;
+      alter column customer_address set not null,
+      alter column status set not null;
 
     alter table orders
       drop constraint if exists orders_customer_phone_min_digits,
@@ -63,5 +68,10 @@ begin
       drop constraint if exists orders_customer_address_required,
       add constraint orders_customer_address_required
       check (length(btrim(customer_address)) > 0);
+
+    alter table orders
+      drop constraint if exists orders_status_valid,
+      add constraint orders_status_valid
+      check (status in ('pending', 'completed'));
   end if;
 end $$;

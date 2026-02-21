@@ -152,14 +152,23 @@ async function loadMenuList() {
 
 async function loadOrders() {
   const host = document.getElementById('orders');
+  const historyHost = document.getElementById('orders-history');
   try {
     const orders = await fetchJSON('/api/orders');
-    if (!orders.length) {
-      host.innerHTML = '<p class="muted">No orders yet.</p>';
-      return;
-    }
+    const activeOrders = orders.filter((o) => (o.status || 'pending') !== 'completed');
+    const completedOrders = orders.filter((o) => o.status === 'completed');
+
     host.innerHTML = '';
-    orders.slice().reverse().forEach((o) => {
+    historyHost.innerHTML = '';
+
+    if (!activeOrders.length) {
+      host.innerHTML = '<p class="muted">No active orders.</p>';
+    }
+    if (!completedOrders.length) {
+      historyHost.innerHTML = '<p class="muted">No completed orders yet.</p>';
+    }
+
+    activeOrders.slice().reverse().forEach((o) => {
       const div = document.createElement('div');
       div.style.borderBottom = '1px solid #f2f2f2';
       div.style.padding = '10px 0';
@@ -170,11 +179,54 @@ async function loadOrders() {
           ${o.items.map((it) => `<span class="pill">${it.qty}x ${it.name}</span>`).join(' ')}
         </div>
         <div style="margin-top:6px; font-weight:700;">Total: ${money(o.total)}</div>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button class="btn small" type="button" data-complete="${o.id}" style="background:#8e7077;">Complete</button>
+          <button class="btn small" type="button" data-order-del="${o.id}" style="background:#c0392b;">Delete</button>
+        </div>
       `;
       host.appendChild(div);
     });
+
+    completedOrders.slice().reverse().forEach((o) => {
+      const div = document.createElement('div');
+      div.style.borderBottom = '1px solid #f2f2f2';
+      div.style.padding = '10px 0';
+      div.innerHTML = `
+        <div style="font-weight:700;">${o.customer?.name || 'Customer'} - ${new Date(o.createdAt).toLocaleString()} <span class="pill">Completed</span></div>
+        <div class="muted">Phone: ${o.customer?.phone || '-'} - Address: ${o.customer?.address || '-'}</div>
+        <div style="margin-top:6px;">
+          ${o.items.map((it) => `<span class="pill">${it.qty}x ${it.name}</span>`).join(' ')}
+        </div>
+        <div style="margin-top:6px; font-weight:700;">Total: ${money(o.total)}</div>
+        <div style="margin-top:8px; display:flex; gap:8px;">
+          <button class="btn small" type="button" data-order-del="${o.id}" style="background:#c0392b;">Delete</button>
+        </div>
+      `;
+      historyHost.appendChild(div);
+    });
+
+    const onOrderAction = async (e) => {
+      const completeId = e.target.closest('[data-complete]')?.getAttribute('data-complete');
+      const delId = e.target.closest('[data-order-del]')?.getAttribute('data-order-del');
+      if (completeId) {
+        await fetchJSON(`/api/orders/${completeId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'completed' }),
+        });
+        await loadOrders();
+      }
+      if (delId) {
+        if (!confirm('Delete this order permanently?')) return;
+        await fetchJSON(`/api/orders/${delId}`, { method: 'DELETE' });
+        await loadOrders();
+      }
+    };
+
+    host.onclick = onOrderAction;
+    historyHost.onclick = onOrderAction;
   } catch {
     host.innerHTML = '<p class="muted">Sign in to view orders.</p>';
+    historyHost.innerHTML = '<p class="muted">Sign in to view order history.</p>';
   }
 }
 
@@ -221,6 +273,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setAuthState(false);
     document.getElementById('password').value = '';
     document.getElementById('orders').innerHTML = '<p class="muted">Sign in to view orders.</p>';
+    document.getElementById('orders-history').innerHTML = '<p class="muted">Sign in to view order history.</p>';
     document.getElementById('messages').innerHTML = '<p class="muted">Sign in to view messages.</p>';
   };
 
@@ -229,6 +282,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     setAuthState(false);
     document.getElementById('password').value = '';
     document.getElementById('orders').innerHTML = '<p class="muted">Sign in to view orders.</p>';
+    document.getElementById('orders-history').innerHTML = '<p class="muted">Sign in to view order history.</p>';
     document.getElementById('messages').innerHTML = '<p class="muted">Sign in to view messages.</p>';
   };
 

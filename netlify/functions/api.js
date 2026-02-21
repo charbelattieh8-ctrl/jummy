@@ -235,6 +235,7 @@ async function createOrder(payload) {
 
   const order = {
     created_at: new Date().toISOString(),
+    status: 'pending',
     customer_name: String(payload.customer?.name || '').slice(0, 120),
     customer_phone: phone.slice(0, 60),
     customer_address: address.slice(0, 200),
@@ -247,12 +248,13 @@ async function createOrder(payload) {
     const { data, error } = await supabase
       .from('orders')
       .insert(order)
-      .select('id,created_at,customer_name,customer_phone,customer_address,items,total')
+      .select('id,created_at,status,customer_name,customer_phone,customer_address,items,total')
       .single();
     if (error) throw new Error(error.message);
     return {
       id: data.id,
       createdAt: data.created_at,
+      status: data.status === 'completed' ? 'completed' : 'pending',
       customer: {
         name: data.customer_name,
         phone: data.customer_phone,
@@ -268,6 +270,7 @@ async function createOrder(payload) {
   const localOrder = {
     id: `ord_${Date.now()}`,
     createdAt: order.created_at,
+    status: 'pending',
     customer: {
       name: order.customer_name,
       phone: order.customer_phone,
@@ -329,12 +332,13 @@ async function fetchOrders() {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('orders')
-      .select('id,created_at,customer_name,customer_phone,customer_address,items,total')
+      .select('id,created_at,status,customer_name,customer_phone,customer_address,items,total')
       .order('created_at', { ascending: false });
     if (error) throw new Error(error.message);
     return (data || []).map((row) => ({
       id: row.id,
       createdAt: row.created_at,
+      status: row.status === 'completed' ? 'completed' : 'pending',
       customer: {
         name: row.customer_name,
         phone: row.customer_phone,
@@ -345,7 +349,64 @@ async function fetchOrders() {
     }));
   }
   if (process.env.NETLIFY) throw new Error('Database not configured');
-  return readJson(ORDERS_FILE, []);
+  return readJson(ORDERS_FILE, []).map((row) => ({
+    ...row,
+    status: row.status === 'completed' ? 'completed' : 'pending',
+  }));
+}
+
+async function updateOrderStatus(id, status) {
+  const nextStatus = String(status || '').trim().toLowerCase();
+  if (nextStatus !== 'pending' && nextStatus !== 'completed') {
+    throw new HttpError(400, 'Invalid status');
+  }
+
+  if (usingSupabase()) {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ status: nextStatus })
+      .eq('id', id)
+      .select('id,created_at,status,customer_name,customer_phone,customer_address,items,total')
+      .single();
+    if (error) throw new Error(error.message);
+    return {
+      id: data.id,
+      createdAt: data.created_at,
+      status: data.status === 'completed' ? 'completed' : 'pending',
+      customer: {
+        name: data.customer_name,
+        phone: data.customer_phone,
+        address: data.customer_address,
+      },
+      items: data.items || [],
+      total: Number(data.total || 0),
+    };
+  }
+
+  if (process.env.NETLIFY) throw new Error('Database not configured');
+  const orders = readJson(ORDERS_FILE, []);
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) throw new HttpError(404, 'Not found');
+  orders[idx] = { ...orders[idx], status: nextStatus };
+  writeJsonAtomic(ORDERS_FILE, orders);
+  return orders[idx];
+}
+
+async function deleteOrder(id) {
+  if (usingSupabase()) {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('orders').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  }
+
+  if (process.env.NETLIFY) throw new Error('Database not configured');
+  const orders = readJson(ORDERS_FILE, []);
+  const next = orders.filter((o) => o.id !== id);
+  if (next.length === orders.length) throw new HttpError(404, 'Not found');
+  writeJsonAtomic(ORDERS_FILE, next);
+  return { ok: true };
 }
 
 async function fetchContactMessages() {
@@ -473,6 +534,21 @@ exports.handler = async (event) => {
       if (!requireAdmin(headers)) return jsonResponse(401, { error: 'Admin auth required' });
       const orders = await fetchOrders();
       return jsonResponse(200, orders);
+    }
+
+    if (route.startsWith('/orders/') && route.endsWith('/status') && method === 'PUT') {
+      if (!requireAdmin(headers)) return jsonResponse(401, { error: 'Admin auth required' });
+      const id = route.split('/')[2];
+      const body = parseBody(event) || {};
+      const order = await updateOrderStatus(id, body.status);
+      return jsonResponse(200, order);
+    }
+
+    if (route.startsWith('/orders/') && method === 'DELETE') {
+      if (!requireAdmin(headers)) return jsonResponse(401, { error: 'Admin auth required' });
+      const id = route.split('/')[2];
+      const result = await deleteOrder(id);
+      return jsonResponse(200, result);
     }
 
     if (route === '/contact' && method === 'GET') {

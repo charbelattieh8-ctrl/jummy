@@ -165,6 +165,7 @@ app.post('/api/orders', (req, res) => {
   const order = {
     id: `ord_${uuidv4()}`,
     createdAt: new Date().toISOString(),
+    status: 'pending',
     customer: {
       name: String(customer.name || '').slice(0, 120),
       phone: phone.slice(0, 60),
@@ -207,8 +208,34 @@ app.post('/api/contact', (req, res) => {
 });
 
 app.get('/api/orders', requireAdmin, (req, res) => {
-  const orders = readJson(ORDERS_FILE, []);
+  const orders = readJson(ORDERS_FILE, []).map((o) => ({
+    ...o,
+    status: o.status === 'completed' ? 'completed' : 'pending',
+  }));
   res.json(orders);
+});
+
+app.put('/api/orders/:id/status', requireAdmin, (req, res) => {
+  const orders = readJson(ORDERS_FILE, []);
+  const id = req.params.id;
+  const status = String(req.body?.status || '').trim().toLowerCase();
+  if (status !== 'pending' && status !== 'completed') {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+  const idx = orders.findIndex((o) => o.id === id);
+  if (idx === -1) return res.status(404).json({ error: 'Not found' });
+  orders[idx] = { ...orders[idx], status };
+  writeJsonAtomic(ORDERS_FILE, orders);
+  res.json(orders[idx]);
+});
+
+app.delete('/api/orders/:id', requireAdmin, (req, res) => {
+  const orders = readJson(ORDERS_FILE, []);
+  const id = req.params.id;
+  const next = orders.filter((o) => o.id !== id);
+  if (next.length === orders.length) return res.status(404).json({ error: 'Not found' });
+  writeJsonAtomic(ORDERS_FILE, next);
+  res.json({ ok: true });
 });
 
 app.get('/api/contact', requireAdmin, (req, res) => {
