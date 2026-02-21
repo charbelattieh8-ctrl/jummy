@@ -105,6 +105,12 @@ function usingSupabase() {
   return Boolean(SUPABASE_URL && SUPABASE_KEY);
 }
 
+function isMissingOrdersStatusColumn(error) {
+  return String(error?.message || '').toLowerCase().includes('column') &&
+    String(error?.message || '').toLowerCase().includes('orders.status') &&
+    String(error?.message || '').toLowerCase().includes('does not exist');
+}
+
 async function fetchMenu() {
   if (usingSupabase()) {
     const supabase = getSupabase();
@@ -245,16 +251,46 @@ async function createOrder(payload) {
 
   if (usingSupabase()) {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    const primary = await supabase
       .from('orders')
       .insert(order)
       .select('id,created_at,status,customer_name,customer_phone,customer_address,items,total')
       .single();
-    if (error) throw new Error(error.message);
+
+    if (!primary.error) {
+      const data = primary.data;
+      return {
+        id: data.id,
+        createdAt: data.created_at,
+        status: data.status === 'completed' ? 'completed' : 'pending',
+        customer: {
+          name: data.customer_name,
+          phone: data.customer_phone,
+          address: data.customer_address,
+        },
+        items: data.items || [],
+        total: Number(data.total || 0),
+      };
+    }
+
+    if (!isMissingOrdersStatusColumn(primary.error)) {
+      throw new Error(primary.error.message);
+    }
+
+    // Backward compatibility when orders.status has not been migrated yet.
+    const legacyOrder = { ...order };
+    delete legacyOrder.status;
+    const legacy = await supabase
+      .from('orders')
+      .insert(legacyOrder)
+      .select('id,created_at,customer_name,customer_phone,customer_address,items,total')
+      .single();
+    if (legacy.error) throw new Error(legacy.error.message);
+    const data = legacy.data;
     return {
       id: data.id,
       createdAt: data.created_at,
-      status: data.status === 'completed' ? 'completed' : 'pending',
+      status: 'pending',
       customer: {
         name: data.customer_name,
         phone: data.customer_phone,
@@ -330,15 +366,38 @@ async function createContactMessage(payload) {
 async function fetchOrders() {
   if (usingSupabase()) {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    const withStatus = await supabase
       .from('orders')
       .select('id,created_at,status,customer_name,customer_phone,customer_address,items,total')
       .order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data || []).map((row) => ({
+    if (!withStatus.error) {
+      return (withStatus.data || []).map((row) => ({
+        id: row.id,
+        createdAt: row.created_at,
+        status: row.status === 'completed' ? 'completed' : 'pending',
+        customer: {
+          name: row.customer_name,
+          phone: row.customer_phone,
+          address: row.customer_address,
+        },
+        items: row.items || [],
+        total: Number(row.total || 0),
+      }));
+    }
+
+    if (!isMissingOrdersStatusColumn(withStatus.error)) {
+      throw new Error(withStatus.error.message);
+    }
+
+    const legacy = await supabase
+      .from('orders')
+      .select('id,created_at,customer_name,customer_phone,customer_address,items,total')
+      .order('created_at', { ascending: false });
+    if (legacy.error) throw new Error(legacy.error.message);
+    return (legacy.data || []).map((row) => ({
       id: row.id,
       createdAt: row.created_at,
-      status: row.status === 'completed' ? 'completed' : 'pending',
+      status: 'pending',
       customer: {
         name: row.customer_name,
         phone: row.customer_phone,
@@ -369,7 +428,15 @@ async function updateOrderStatus(id, status) {
       .eq('id', id)
       .select('id,created_at,status,customer_name,customer_phone,customer_address,items,total')
       .single();
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (isMissingOrdersStatusColumn(error)) {
+        throw new HttpError(
+          500,
+          "Orders status tracking is not enabled in Supabase yet. Run supabase_schema.sql to add orders.status."
+        );
+      }
+      throw new Error(error.message);
+    }
     return {
       id: data.id,
       createdAt: data.created_at,

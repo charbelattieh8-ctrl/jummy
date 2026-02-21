@@ -224,9 +224,9 @@ async function loadOrders() {
 
     host.onclick = onOrderAction;
     historyHost.onclick = onOrderAction;
-  } catch {
-    host.innerHTML = '<p class="muted">Sign in to view orders.</p>';
-    historyHost.innerHTML = '<p class="muted">Sign in to view order history.</p>';
+  } catch (err) {
+    host.innerHTML = `<p class="muted">Could not load orders: ${err.message}</p>`;
+    historyHost.innerHTML = '<p class="muted">Order history unavailable.</p>';
   }
 }
 
