@@ -32,6 +32,7 @@ const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const MENU_FILE = path.join(DATA_DIR, 'menu.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const CONTACT_FILE = path.join(DATA_DIR, 'contact_messages.json');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const ALLOW_ANY_PASSWORD = process.env.ALLOW_ANY_PASSWORD === '1';
 console.log('ADMIN_PASSWORD_ACTIVE=', ADMIN_PASSWORD);
@@ -77,6 +78,10 @@ function requireAdmin(req, res, next) {
 
 function normalizePassword(value) {
   return String(value || '').normalize('NFKC').replace(/\s+/g, '');
+}
+
+function digitCount(value) {
+  return String(value || '').replace(/\D/g, '').length;
 }
 
 // Admin login
@@ -146,6 +151,14 @@ app.post('/api/orders', (req, res) => {
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'Cart is empty' });
   }
+  const phone = String(customer.phone || '').trim();
+  const address = String(customer.address || '').trim();
+  if (!phone) return res.status(400).json({ error: 'Phone number is required' });
+  if (digitCount(phone) < 8) {
+    return res.status(400).json({ error: 'Phone number must include at least 8 digits' });
+  }
+  if (!address) return res.status(400).json({ error: 'Delivery address is required' });
+
   const total = items.reduce((sum, it) => sum + Number(it.qty || 0) * Number(it.price || 0), 0);
   const orders = readJson(ORDERS_FILE, []);
   const order = {
@@ -153,8 +166,8 @@ app.post('/api/orders', (req, res) => {
     createdAt: new Date().toISOString(),
     customer: {
       name: String(customer.name || '').slice(0, 120),
-      phone: String(customer.phone || '').slice(0, 60),
-      address: String(customer.address || '').slice(0, 200),
+      phone: phone.slice(0, 60),
+      address: address.slice(0, 200),
     },
     items: items.map((it) => ({
       id: String(it.id || '').slice(0, 80),
@@ -167,6 +180,29 @@ app.post('/api/orders', (req, res) => {
   orders.push(order);
   writeJsonAtomic(ORDERS_FILE, orders);
   res.status(201).json(order);
+});
+
+app.post('/api/contact', (req, res) => {
+  const { name, email, message } = req.body || {};
+  const cleanName = String(name || '').trim();
+  const cleanEmail = String(email || '').trim();
+  const cleanMessage = String(message || '').trim();
+
+  if (!cleanName || !cleanEmail || !cleanMessage) {
+    return res.status(400).json({ error: 'Name, email, and message are required' });
+  }
+
+  const entries = readJson(CONTACT_FILE, []);
+  const entry = {
+    id: `msg_${uuidv4()}`,
+    createdAt: new Date().toISOString(),
+    name: cleanName.slice(0, 120),
+    email: cleanEmail.slice(0, 160),
+    message: cleanMessage.slice(0, 2000),
+  };
+  entries.push(entry);
+  writeJsonAtomic(CONTACT_FILE, entries);
+  res.status(201).json({ ok: true });
 });
 
 app.get('/api/orders', requireAdmin, (req, res) => {

@@ -15,6 +15,14 @@ const ALLOW_ANY_PASSWORD = process.env.ALLOW_ANY_PASSWORD === '1';
 const DATA_DIR = path.join(__dirname, '..', '..', 'data');
 const MENU_FILE = path.join(DATA_DIR, 'menu.json');
 const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
+const CONTACT_FILE = path.join(DATA_DIR, 'contact_messages.json');
+
+class HttpError extends Error {
+  constructor(statusCode, message) {
+    super(message);
+    this.statusCode = statusCode;
+  }
+}
 
 function jsonResponse(statusCode, body) {
   return {
@@ -45,6 +53,10 @@ function writeJsonAtomic(filePath, data) {
 
 function normalizePassword(value) {
   return String(value || '').normalize('NFKC').replace(/\s+/g, '');
+}
+
+function digitCount(value) {
+  return String(value || '').replace(/\D/g, '').length;
 }
 
 function getAdminToken(headers) {
@@ -208,15 +220,21 @@ async function createOrder(payload) {
     }))
     .filter((it) => it.qty > 0);
 
-  if (!items.length) throw new Error('Cart is empty');
+  if (!items.length) throw new HttpError(400, 'Cart is empty');
+
+  const phone = String(payload.customer?.phone || '').trim();
+  const address = String(payload.customer?.address || '').trim();
+  if (!phone) throw new HttpError(400, 'Phone number is required');
+  if (digitCount(phone) < 8) throw new HttpError(400, 'Phone number must include at least 8 digits');
+  if (!address) throw new HttpError(400, 'Delivery address is required');
 
   const total = items.reduce((sum, it) => sum + it.qty * it.price, 0);
 
   const order = {
     created_at: new Date().toISOString(),
     customer_name: String(payload.customer?.name || '').slice(0, 120),
-    customer_phone: String(payload.customer?.phone || '').slice(0, 60),
-    customer_address: String(payload.customer?.address || '').slice(0, 200),
+    customer_phone: phone.slice(0, 60),
+    customer_address: address.slice(0, 200),
     items,
     total,
   };
@@ -258,6 +276,41 @@ async function createOrder(payload) {
   orders.push(localOrder);
   writeJsonAtomic(ORDERS_FILE, orders);
   return localOrder;
+}
+
+async function createContactMessage(payload) {
+  const name = String(payload.name || '').trim();
+  const email = String(payload.email || '').trim();
+  const message = String(payload.message || '').trim();
+  if (!name || !email || !message) {
+    throw new HttpError(400, 'Name, email, and message are required');
+  }
+
+  const row = {
+    created_at: new Date().toISOString(),
+    name: name.slice(0, 120),
+    email: email.slice(0, 160),
+    message: message.slice(0, 2000),
+  };
+
+  if (usingSupabase()) {
+    const supabase = getSupabase();
+    const { error } = await supabase.from('contact_messages').insert(row);
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  }
+
+  if (process.env.NETLIFY) throw new Error('Database not configured');
+  const entries = readJson(CONTACT_FILE, []);
+  entries.push({
+    id: `msg_${Date.now()}`,
+    createdAt: row.created_at,
+    name: row.name,
+    email: row.email,
+    message: row.message,
+  });
+  writeJsonAtomic(CONTACT_FILE, entries);
+  return { ok: true };
 }
 
 async function fetchOrders() {
@@ -379,6 +432,12 @@ exports.handler = async (event) => {
       return jsonResponse(201, order);
     }
 
+    if (route === '/contact' && method === 'POST') {
+      const body = parseBody(event) || {};
+      const result = await createContactMessage(body);
+      return jsonResponse(201, result);
+    }
+
     if (route === '/orders' && method === 'GET') {
       if (!requireAdmin(headers)) return jsonResponse(401, { error: 'Admin auth required' });
       const orders = await fetchOrders();
@@ -387,6 +446,6 @@ exports.handler = async (event) => {
 
     return jsonResponse(404, { error: 'Not found' });
   } catch (err) {
-    return jsonResponse(500, { error: err.message || 'Server error' });
+    return jsonResponse(err.statusCode || 500, { error: err.message || 'Server error' });
   }
 };

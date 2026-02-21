@@ -17,6 +17,10 @@ function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
+function digitCount(value) {
+  return String(value || '').replace(/\D/g, '').length;
+}
+
 function readCart() {
   try {
     return JSON.parse(localStorage.getItem(CART_KEY) || '[]');
@@ -163,8 +167,25 @@ async function checkout() {
 
   const name = prompt('Your name for the order:');
   if (!name) return;
-  const phone = prompt('Phone number (optional):') || '';
-  const address = prompt('Delivery address (optional):') || '';
+  const phoneInput = prompt('Phone number (required, at least 8 digits):');
+  if (phoneInput === null) return;
+  const phone = phoneInput.trim();
+  if (!phone) {
+    alert('Phone number is required.');
+    return;
+  }
+  if (digitCount(phone) < 8) {
+    alert('Phone number must include at least 8 digits.');
+    return;
+  }
+
+  const addressInput = prompt('Delivery address (required):');
+  if (addressInput === null) return;
+  const address = addressInput.trim();
+  if (!address) {
+    alert('Delivery address is required.');
+    return;
+  }
 
   try {
     await fetchJSON(`${API_BASE}/api/orders`, {
@@ -231,11 +252,23 @@ document.addEventListener('DOMContentLoaded', () => {
   renderCart(cart);
   loadMenu();
 
-  // Contact form (static demo)
+  // Contact form
   const contactForm = document.getElementById('contact-form');
-  contactForm?.addEventListener('submit', (e) => {
+  contactForm?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    alert('Thanks! Your message was received.');
-    contactForm.reset();
+    const name = document.getElementById('name')?.value?.trim() || '';
+    const email = document.getElementById('email')?.value?.trim() || '';
+    const message = document.getElementById('message')?.value?.trim() || '';
+
+    try {
+      await fetchJSON(`${API_BASE}/api/contact`, {
+        method: 'POST',
+        body: JSON.stringify({ name, email, message }),
+      });
+      alert('Thanks! Your message was received.');
+      contactForm.reset();
+    } catch (err) {
+      alert(`Could not send your message: ${err.message}`);
+    }
   });
 });
