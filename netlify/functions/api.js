@@ -348,6 +348,26 @@ async function fetchOrders() {
   return readJson(ORDERS_FILE, []);
 }
 
+async function fetchContactMessages() {
+  if (usingSupabase()) {
+    const supabase = getSupabase();
+    const { data, error } = await supabase
+      .from('contact_messages')
+      .select('id,created_at,name,email,message')
+      .order('created_at', { ascending: false });
+    if (error) throw new Error(error.message);
+    return (data || []).map((row) => ({
+      id: row.id,
+      createdAt: row.created_at,
+      name: row.name,
+      email: row.email,
+      message: row.message,
+    }));
+  }
+  if (process.env.NETLIFY) throw new Error('Database not configured');
+  return readJson(CONTACT_FILE, []).slice().reverse();
+}
+
 function parseBody(event) {
   if (!event.body) return null;
   const raw = event.isBase64Encoded ? Buffer.from(event.body, 'base64').toString('utf8') : event.body;
@@ -453,6 +473,12 @@ exports.handler = async (event) => {
       if (!requireAdmin(headers)) return jsonResponse(401, { error: 'Admin auth required' });
       const orders = await fetchOrders();
       return jsonResponse(200, orders);
+    }
+
+    if (route === '/contact' && method === 'GET') {
+      if (!requireAdmin(headers)) return jsonResponse(401, { error: 'Admin auth required' });
+      const messages = await fetchContactMessages();
+      return jsonResponse(200, messages);
     }
 
     return jsonResponse(404, { error: 'Not found' });

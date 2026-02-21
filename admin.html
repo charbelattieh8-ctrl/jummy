@@ -24,6 +24,8 @@
     .inline > * { flex:1; }
     .muted { color:#666; font-size:0.9rem; }
     .topbar { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:12px; }
+    .preview { margin-top: 8px; }
+    .preview img { width: 100%; max-height: 180px; object-fit: cover; border: 1px solid #eee; border-radius: 10px; display: none; }
   </style>
 </head>
 <body>
@@ -76,12 +78,12 @@
                 <input id="price" type="number" step="0.01" min="0" required />
               </div>
               <div>
-                <label for="image">Image</label>
-                <select id="image">
-                  <option value="assets/images/menu1.jpg">menu1.jpg</option>
-                  <option value="assets/images/menu2.jpg">menu2.jpg</option>
-                  <option value="assets/images/menu3.jpg">menu3.jpg</option>
-                </select>
+                <label for="image">Image URL or uploaded file</label>
+                <input id="image" placeholder="https://... or assets/images/..." />
+                <label for="image-upload" style="margin-top:8px;">Upload image</label>
+                <input id="image-upload" type="file" accept="image/*" />
+                <p class="muted" style="margin-top:6px;">Any image can be uploaded. It will be optimized before saving.</p>
+                <div class="preview"><img id="image-preview" alt="Image preview" /></div>
               </div>
             </div>
 
@@ -99,6 +101,13 @@
       <h3>Orders</h3>
       <div class="body" id="orders">
         <p class="muted">Sign in to view orders.</p>
+      </div>
+    </section>
+
+    <section class="card" style="margin-top:18px;">
+      <h3>Contact Messages</h3>
+      <div class="body" id="messages">
+        <p class="muted">Sign in to view messages.</p>
       </div>
     </section>
   </main>

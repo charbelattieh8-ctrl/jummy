@@ -50,6 +50,61 @@ function fillForm(item) {
   document.getElementById('price').value = item?.price ?? '';
   document.getElementById('image').value = item?.image || 'assets/images/menu1.jpg';
   document.getElementById('description').value = item?.description || '';
+  updateImagePreview(document.getElementById('image').value);
+}
+
+function updateImagePreview(src) {
+  const img = document.getElementById('image-preview');
+  if (!img) return;
+  const value = String(src || '').trim();
+  if (!value) {
+    img.style.display = 'none';
+    img.removeAttribute('src');
+    return;
+  }
+  img.src = value;
+  img.style.display = 'block';
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Could not read file'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Invalid image'));
+    img.src = src;
+  });
+}
+
+async function optimizeImageFile(file) {
+  if (!file || !String(file.type || '').startsWith('image/')) {
+    throw new Error('Please choose a valid image file');
+  }
+
+  const rawDataUrl = await readFileAsDataUrl(file);
+  const image = await loadImage(rawDataUrl);
+  const maxSize = 1200;
+  const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+  const targetW = Math.max(1, Math.round(image.width * scale));
+  const targetH = Math.max(1, Math.round(image.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW;
+  canvas.height = targetH;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not process image');
+  ctx.drawImage(image, 0, 0, targetW, targetH);
+
+  // JPEG keeps payload sizes smaller for API transport.
+  return canvas.toDataURL('image/jpeg', 0.82);
 }
 
 async function loadMenuList() {
@@ -67,7 +122,10 @@ async function loadMenuList() {
     row.className = 'row';
     row.innerHTML = `
       <div>
-        <div style="font-weight:700;">${item.name} <span class="pill">${money(item.price)}</span></div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <img src="${item.image || 'assets/images/menu1.jpg'}" alt="${item.name}" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #eee;">
+          <div style="font-weight:700;">${item.name} <span class="pill">${money(item.price)}</span></div>
+        </div>
         <div class="muted">${item.description || ''}</div>
       </div>
       <div style="display:flex; gap:8px;">
@@ -122,6 +180,31 @@ async function loadOrders() {
   }
 }
 
+async function loadMessages() {
+  const host = document.getElementById('messages');
+  try {
+    const messages = await fetchJSON('/api/contact');
+    if (!messages.length) {
+      host.innerHTML = '<p class="muted">No messages yet.</p>';
+      return;
+    }
+    host.innerHTML = '';
+    messages.forEach((m) => {
+      const div = document.createElement('div');
+      div.style.borderBottom = '1px solid #f2f2f2';
+      div.style.padding = '10px 0';
+      div.innerHTML = `
+        <div style="font-weight:700;">${m.name || 'Visitor'} - ${new Date(m.createdAt).toLocaleString()}</div>
+        <div class="muted">${m.email || '-'}</div>
+        <div style="margin-top:6px; white-space:pre-wrap;">${m.message || ''}</div>
+      `;
+      host.appendChild(div);
+    });
+  } catch {
+    host.innerHTML = '<p class="muted">Sign in to view messages.</p>';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   setEditorMode(Boolean(getToken()));
 
@@ -138,12 +221,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     setToken('');
     setEditorMode(false);
     document.getElementById('orders').innerHTML = '<p class="muted">Sign in to view orders.</p>';
+    document.getElementById('messages').innerHTML = '<p class="muted">Sign in to view messages.</p>';
   };
 
   document.getElementById('logout').onclick = () => {
     setToken('');
     setEditorMode(false);
     document.getElementById('orders').innerHTML = '<p class="muted">Sign in to view orders.</p>';
+    document.getElementById('messages').innerHTML = '<p class="muted">Sign in to view messages.</p>';
   };
 
   document.getElementById('login-form').onsubmit = async (e) => {
@@ -159,6 +244,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       setEditorMode(true);
       await loadMenuList();
       await loadOrders();
+      await loadMessages();
       fillForm(null);
     } catch (err) {
       alert(`Login failed: ${err.message} (origin: ${location.origin})`);
@@ -166,6 +252,22 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   document.getElementById('new-item').onclick = () => fillForm(null);
+
+  document.getElementById('image').addEventListener('input', (e) => {
+    updateImagePreview(e.target.value);
+  });
+
+  document.getElementById('image-upload').addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const optimized = await optimizeImageFile(file);
+      document.getElementById('image').value = optimized;
+      updateImagePreview(optimized);
+    } catch (err) {
+      alert(`Image upload failed: ${err.message}`);
+    }
+  });
 
   document.getElementById('edit-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -184,6 +286,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
       await loadMenuList();
       await loadOrders();
+      await loadMessages();
       fillForm(null);
     } catch (err) {
       alert(`Save failed: ${err.message}`);
@@ -192,5 +295,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Public menu list loads even when not authed; buttons will fail without login.
   await loadMenuList();
-  if (getToken()) await loadOrders();
+  if (getToken()) {
+    await loadOrders();
+    await loadMessages();
+  }
 });
