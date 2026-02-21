@@ -12,7 +12,11 @@
       display: grid;
       place-items: center;
       padding: 2rem 1rem;
-      background: linear-gradient(135deg, #fff7f0, #ffe8d6);
+      background:
+        radial-gradient(circle at 15% 10%, rgba(250, 126, 30, 0.2), transparent 32%),
+        radial-gradient(circle at 85% 15%, rgba(79, 91, 213, 0.22), transparent 35%),
+        radial-gradient(circle at 50% 100%, rgba(214, 41, 118, 0.18), transparent 35%),
+        #fff8fc;
     }
     .contact-card {
       max-width: 520px;
@@ -41,12 +45,18 @@
       text-decoration: none;
       font-weight: 600;
       color: #fff;
+      box-shadow: 0 8px 20px rgba(80, 24, 92, 0.22);
+      transition: transform 0.2s ease, box-shadow 0.25s ease;
+    }
+    .contact-link:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(80, 24, 92, 0.3);
     }
     .whatsapp {
       background: #25d366;
     }
     .instagram {
-      background: #c13584;
+      background: linear-gradient(135deg, #feda75 0%, #fa7e1e 30%, #d62976 62%, #962fbf 82%, #4f5bd5 100%);
     }
     .icon {
       width: 20px;
@@ -58,6 +68,7 @@
 <body>
   <main class="contact-page">
     <section class="contact-card">
+      <img src="assets/images/brand-logo.svg" alt="Delights by Jummy logo" style="width:76px;height:76px;border-radius:18px;box-shadow:0 8px 24px rgba(214,41,118,0.35);margin-bottom:0.9rem;">
       <h1>Contact Delights by Jummy</h1>
       <p>Call us at <strong>+961 70149319</strong> or use the direct links below.</p>
       <div class="contact-links">
