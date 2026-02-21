@@ -55,6 +55,11 @@ begin
       check (length(regexp_replace(customer_phone, '\D', '', 'g')) >= 8);
 
     alter table orders
+      drop constraint if exists orders_customer_phone_prefix_961,
+      add constraint orders_customer_phone_prefix_961
+      check (left(customer_phone, 4) = '+961');
+
+    alter table orders
       drop constraint if exists orders_customer_address_required,
       add constraint orders_customer_address_required
       check (length(btrim(customer_address)) > 0);

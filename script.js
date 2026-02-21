@@ -17,8 +17,12 @@ function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
-function digitCount(value) {
-  return String(value || '').replace(/\D/g, '').length;
+function normalizeLebanonPhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  const local = digits.startsWith('961') ? digits.slice(3) : digits;
+  if (local.length < 8) return '';
+  return `+961${local}`;
 }
 
 function readCart() {
@@ -169,13 +173,18 @@ async function checkout() {
   if (!name) return;
   const phoneInput = prompt('Phone number (required, at least 8 digits):');
   if (phoneInput === null) return;
-  const phone = phoneInput.trim();
-  if (!phone) {
+  const phoneDigits = String(phoneInput || '').replace(/\D/g, '');
+  if (!phoneDigits) {
     alert('Phone number is required.');
     return;
   }
-  if (digitCount(phone) < 8) {
+  if ((phoneDigits.startsWith('961') ? phoneDigits.slice(3) : phoneDigits).length < 8) {
     alert('Phone number must include at least 8 digits.');
+    return;
+  }
+  const phone = normalizeLebanonPhone(phoneInput);
+  if (!phone) {
+    alert('Phone number is required.');
     return;
   }
 

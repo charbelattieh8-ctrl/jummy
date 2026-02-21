@@ -80,8 +80,12 @@ function normalizePassword(value) {
   return String(value || '').normalize('NFKC').replace(/\s+/g, '');
 }
 
-function digitCount(value) {
-  return String(value || '').replace(/\D/g, '').length;
+function normalizeLebanonPhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  const local = digits.startsWith('961') ? digits.slice(3) : digits;
+  if (local.length < 8) return '';
+  return `+961${local}`;
 }
 
 // Admin login
@@ -151,12 +155,9 @@ app.post('/api/orders', (req, res) => {
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ error: 'Cart is empty' });
   }
-  const phone = String(customer.phone || '').trim();
+  const phone = normalizeLebanonPhone(customer.phone);
   const address = String(customer.address || '').trim();
   if (!phone) return res.status(400).json({ error: 'Phone number is required' });
-  if (digitCount(phone) < 8) {
-    return res.status(400).json({ error: 'Phone number must include at least 8 digits' });
-  }
   if (!address) return res.status(400).json({ error: 'Delivery address is required' });
 
   const total = items.reduce((sum, it) => sum + Number(it.qty || 0) * Number(it.price || 0), 0);

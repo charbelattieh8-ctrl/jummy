@@ -55,8 +55,12 @@ function normalizePassword(value) {
   return String(value || '').normalize('NFKC').replace(/\s+/g, '');
 }
 
-function digitCount(value) {
-  return String(value || '').replace(/\D/g, '').length;
+function normalizeLebanonPhone(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  if (!digits) return '';
+  const local = digits.startsWith('961') ? digits.slice(3) : digits;
+  if (local.length < 8) return '';
+  return `+961${local}`;
 }
 
 function getAdminToken(headers) {
@@ -222,10 +226,9 @@ async function createOrder(payload) {
 
   if (!items.length) throw new HttpError(400, 'Cart is empty');
 
-  const phone = String(payload.customer?.phone || '').trim();
+  const phone = normalizeLebanonPhone(payload.customer?.phone);
   const address = String(payload.customer?.address || '').trim();
   if (!phone) throw new HttpError(400, 'Phone number is required');
-  if (digitCount(phone) < 8) throw new HttpError(400, 'Phone number must include at least 8 digits');
   if (!address) throw new HttpError(400, 'Delivery address is required');
 
   const total = items.reduce((sum, it) => sum + it.qty * it.price, 0);
@@ -296,7 +299,15 @@ async function createContactMessage(payload) {
   if (usingSupabase()) {
     const supabase = getSupabase();
     const { error } = await supabase.from('contact_messages').insert(row);
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (String(error.message || '').includes("Could not find the table 'public.contact_messages'")) {
+        throw new HttpError(
+          500,
+          "Contact messages table is missing in Supabase. Run supabase_schema.sql to create public.contact_messages."
+        );
+      }
+      throw new Error(error.message);
+    }
     return { ok: true };
   }
 
