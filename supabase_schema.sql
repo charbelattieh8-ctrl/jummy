@@ -9,8 +9,17 @@ create table if not exists menu_items (
   description text default '',
   price numeric(10,2) not null,
   image text default 'assets/images/menu1.jpg',
+  category text not null default 'daily-platters',
   created_at timestamptz not null default now()
 );
+
+alter table menu_items add column if not exists category text default 'daily-platters';
+update menu_items set category = 'daily-platters' where category is null or btrim(category) = '';
+alter table menu_items alter column category set not null;
+alter table menu_items
+  drop constraint if exists menu_items_category_valid,
+  add constraint menu_items_category_valid
+  check (category in ('daily-platters', 'sweets'));
 
 create table if not exists orders (
   id uuid primary key default gen_random_uuid(),

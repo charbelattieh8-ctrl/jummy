@@ -5,6 +5,8 @@ const { createClient } = require('@supabase/supabase-js');
 
 const APP_NAME = 'delights-by-jummy';
 const APP_VERSION = '2.1.0';
+const MENU_CATEGORY_SWEETS = 'sweets';
+const MENU_CATEGORY_DAILY = 'daily-platters';
 
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '';
@@ -63,6 +65,20 @@ function normalizeLebanonPhone(value) {
   return `+961${local}`;
 }
 
+function normalizeMenuCategory(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === MENU_CATEGORY_SWEETS) return MENU_CATEGORY_SWEETS;
+  if (raw === MENU_CATEGORY_DAILY) return MENU_CATEGORY_DAILY;
+  return MENU_CATEGORY_DAILY;
+}
+
+function withNormalizedMenuCategory(item) {
+  return {
+    ...item,
+    category: normalizeMenuCategory(item?.category),
+  };
+}
+
 function getAdminToken(headers) {
   const headerToken = headers['x-admin-token'] || headers['X-Admin-Token'];
   if (headerToken) return String(headerToken);
@@ -111,15 +127,40 @@ function isMissingOrdersStatusColumn(error) {
     String(error?.message || '').toLowerCase().includes('does not exist');
 }
 
+function isMissingMenuCategoryColumn(error) {
+  return String(error?.message || '').toLowerCase().includes('column') &&
+    String(error?.message || '').toLowerCase().includes('menu_items.category') &&
+    String(error?.message || '').toLowerCase().includes('does not exist');
+}
+
 async function fetchMenu() {
   if (usingSupabase()) {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    const primary = await supabase
+      .from('menu_items')
+      .select('id,name,description,price,image,category,created_at')
+      .order('created_at', { ascending: true });
+    if (!primary.error) {
+      return (primary.data || []).map((row) => withNormalizedMenuCategory({
+        id: row.id,
+        name: row.name,
+        description: row.description || '',
+        price: Number(row.price || 0),
+        image: row.image || 'assets/images/menu1.jpg',
+        category: row.category,
+      }));
+    }
+
+    if (!isMissingMenuCategoryColumn(primary.error)) {
+      throw new Error(primary.error.message);
+    }
+
+    const legacy = await supabase
       .from('menu_items')
       .select('id,name,description,price,image,created_at')
       .order('created_at', { ascending: true });
-    if (error) throw new Error(error.message);
-    return (data || []).map((row) => ({
+    if (legacy.error) throw new Error(legacy.error.message);
+    return (legacy.data || []).map((row) => withNormalizedMenuCategory({
       id: row.id,
       name: row.name,
       description: row.description || '',
@@ -128,13 +169,41 @@ async function fetchMenu() {
     }));
   }
   if (process.env.NETLIFY) throw new Error('Database not configured');
-  return readJson(MENU_FILE, []);
+  return readJson(MENU_FILE, []).map(withNormalizedMenuCategory);
 }
 
 async function createMenuItem(payload) {
+  const category = normalizeMenuCategory(payload.category);
   if (usingSupabase()) {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    const primary = await supabase
+      .from('menu_items')
+      .insert({
+        name: payload.name,
+        description: payload.description || '',
+        price: payload.price,
+        image: payload.image || 'assets/images/menu1.jpg',
+        category,
+      })
+      .select('id,name,description,price,image,category')
+      .single();
+    if (!primary.error) {
+      const data = primary.data;
+      return withNormalizedMenuCategory({
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        price: Number(data.price || 0),
+        image: data.image || 'assets/images/menu1.jpg',
+        category: data.category,
+      });
+    }
+
+    if (!isMissingMenuCategoryColumn(primary.error)) {
+      throw new Error(primary.error.message);
+    }
+
+    const legacy = await supabase
       .from('menu_items')
       .insert({
         name: payload.name,
@@ -144,14 +213,16 @@ async function createMenuItem(payload) {
       })
       .select('id,name,description,price,image')
       .single();
-    if (error) throw new Error(error.message);
-    return {
+    if (legacy.error) throw new Error(legacy.error.message);
+    const data = legacy.data;
+    return withNormalizedMenuCategory({
       id: data.id,
       name: data.name,
       description: data.description || '',
       price: Number(data.price || 0),
       image: data.image || 'assets/images/menu1.jpg',
-    };
+      category,
+    });
   }
   if (process.env.NETLIFY) throw new Error('Database not configured');
   const menu = readJson(MENU_FILE, []);
@@ -161,16 +232,46 @@ async function createMenuItem(payload) {
     description: payload.description || '',
     price: payload.price,
     image: payload.image || 'assets/images/menu1.jpg',
+    category,
   };
   menu.push(item);
   writeJsonAtomic(MENU_FILE, menu);
-  return item;
+  return withNormalizedMenuCategory(item);
 }
 
 async function updateMenuItem(id, payload) {
+  const category = normalizeMenuCategory(payload.category);
   if (usingSupabase()) {
     const supabase = getSupabase();
-    const { data, error } = await supabase
+    const primary = await supabase
+      .from('menu_items')
+      .update({
+        name: payload.name,
+        description: payload.description || '',
+        price: payload.price,
+        image: payload.image || 'assets/images/menu1.jpg',
+        category,
+      })
+      .eq('id', id)
+      .select('id,name,description,price,image,category')
+      .single();
+    if (!primary.error) {
+      const data = primary.data;
+      return withNormalizedMenuCategory({
+        id: data.id,
+        name: data.name,
+        description: data.description || '',
+        price: Number(data.price || 0),
+        image: data.image || 'assets/images/menu1.jpg',
+        category: data.category,
+      });
+    }
+
+    if (!isMissingMenuCategoryColumn(primary.error)) {
+      throw new Error(primary.error.message);
+    }
+
+    const legacy = await supabase
       .from('menu_items')
       .update({
         name: payload.name,
@@ -181,14 +282,16 @@ async function updateMenuItem(id, payload) {
       .eq('id', id)
       .select('id,name,description,price,image')
       .single();
-    if (error) throw new Error(error.message);
-    return {
+    if (legacy.error) throw new Error(legacy.error.message);
+    const data = legacy.data;
+    return withNormalizedMenuCategory({
       id: data.id,
       name: data.name,
       description: data.description || '',
       price: Number(data.price || 0),
       image: data.image || 'assets/images/menu1.jpg',
-    };
+      category,
+    });
   }
   if (process.env.NETLIFY) throw new Error('Database not configured');
   const menu = readJson(MENU_FILE, []);
@@ -200,9 +303,10 @@ async function updateMenuItem(id, payload) {
     description: payload.description || '',
     price: payload.price,
     image: payload.image || menu[idx].image,
+    category,
   };
   writeJsonAtomic(MENU_FILE, menu);
-  return menu[idx];
+  return withNormalizedMenuCategory(menu[idx]);
 }
 
 async function deleteMenuItem(id) {

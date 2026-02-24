@@ -1,6 +1,8 @@
 /* Admin panel script */
 
 const TOKEN_KEY = 'dbj_admin_token_v1';
+const MENU_CATEGORY_SWEETS = 'sweets';
+const MENU_CATEGORY_DAILY = 'daily-platters';
 
 function getToken() {
   return localStorage.getItem(TOKEN_KEY) || '';
@@ -30,6 +32,17 @@ function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
 }
 
+function normalizeCategory(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === MENU_CATEGORY_SWEETS) return MENU_CATEGORY_SWEETS;
+  if (raw === MENU_CATEGORY_DAILY) return MENU_CATEGORY_DAILY;
+  return MENU_CATEGORY_DAILY;
+}
+
+function categoryLabel(value) {
+  return normalizeCategory(value) === MENU_CATEGORY_SWEETS ? 'Sweets' : 'Daily Platters';
+}
+
 function setAuthState(isAuthed) {
   document.getElementById('login-screen').style.display = isAuthed ? 'none' : 'block';
   document.getElementById('admin-app').style.display = isAuthed ? 'block' : 'none';
@@ -45,6 +58,7 @@ function setServerStatus(text, isError = false) {
 function fillForm(item) {
   document.getElementById('item-id').value = item?.id || '';
   document.getElementById('name').value = item?.name || '';
+  document.getElementById('category').value = normalizeCategory(item?.category);
   document.getElementById('price').value = item?.price ?? '';
   document.getElementById('image').value = item?.image || 'assets/images/menu1.jpg';
   document.getElementById('description').value = item?.description || '';
@@ -122,7 +136,7 @@ async function loadMenuList() {
       <div>
         <div style="display:flex; align-items:center; gap:10px;">
           <img src="${item.image || 'assets/images/menu1.jpg'}" alt="${item.name}" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid #eee;">
-          <div style="font-weight:700;">${item.name} <span class="pill">${money(item.price)}</span></div>
+          <div style="font-weight:700;">${item.name} <span class="pill">${money(item.price)}</span> <span class="pill">${categoryLabel(item.category)}</span></div>
         </div>
         <div class="muted">${item.description || ''}</div>
       </div>
@@ -208,17 +222,21 @@ async function loadOrders() {
     const onOrderAction = async (e) => {
       const completeId = e.target.closest('[data-complete]')?.getAttribute('data-complete');
       const delId = e.target.closest('[data-order-del]')?.getAttribute('data-order-del');
-      if (completeId) {
-        await fetchJSON(`/api/orders/${completeId}/status`, {
-          method: 'PUT',
-          body: JSON.stringify({ status: 'completed' }),
-        });
-        await loadOrders();
-      }
-      if (delId) {
-        if (!confirm('Delete this order permanently?')) return;
-        await fetchJSON(`/api/orders/${delId}`, { method: 'DELETE' });
-        await loadOrders();
+      try {
+        if (completeId) {
+          await fetchJSON(`/api/orders/${completeId}/status`, {
+            method: 'PUT',
+            body: JSON.stringify({ status: 'completed' }),
+          });
+          await loadOrders();
+        }
+        if (delId) {
+          if (!confirm('Delete this order permanently?')) return;
+          await fetchJSON(`/api/orders/${delId}`, { method: 'DELETE' });
+          await loadOrders();
+        }
+      } catch (err) {
+        alert(`Order action failed: ${err.message}`);
       }
     };
 
@@ -329,6 +347,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const id = document.getElementById('item-id').value.trim();
     const payload = {
       name: document.getElementById('name').value.trim(),
+      category: normalizeCategory(document.getElementById('category').value),
       price: Number(document.getElementById('price').value),
       image: document.getElementById('image').value,
       description: document.getElementById('description').value.trim(),

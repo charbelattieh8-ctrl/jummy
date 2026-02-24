@@ -35,6 +35,8 @@ const ORDERS_FILE = path.join(DATA_DIR, 'orders.json');
 const CONTACT_FILE = path.join(DATA_DIR, 'contact_messages.json');
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 const ALLOW_ANY_PASSWORD = process.env.ALLOW_ANY_PASSWORD === '1';
+const MENU_CATEGORY_SWEETS = 'sweets';
+const MENU_CATEGORY_DAILY = 'daily-platters';
 console.log('ADMIN_PASSWORD_ACTIVE=', ADMIN_PASSWORD);
 
 const activeTokens = new Set();
@@ -88,6 +90,20 @@ function normalizeLebanonPhone(value) {
   return `+961${local}`;
 }
 
+function normalizeMenuCategory(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === MENU_CATEGORY_SWEETS) return MENU_CATEGORY_SWEETS;
+  if (raw === MENU_CATEGORY_DAILY) return MENU_CATEGORY_DAILY;
+  return MENU_CATEGORY_DAILY;
+}
+
+function withNormalizedMenuCategory(item) {
+  return {
+    ...item,
+    category: normalizeMenuCategory(item?.category),
+  };
+}
+
 // Admin login
 app.post('/api/admin/login', (req, res) => {
   const { password } = req.body || {};
@@ -110,19 +126,19 @@ app.post('/api/admin/login', (req, res) => {
 // Menu APIs
 app.get('/api/menu', (req, res) => {
   const menu = readJson(MENU_FILE, []);
-  res.json(menu);
+  res.json(menu.map(withNormalizedMenuCategory));
 });
 
 app.post('/api/menu', requireAdmin, (req, res) => {
   const menu = readJson(MENU_FILE, []);
-  const { name, description = '', price, image = 'assets/images/menu1.jpg' } = req.body || {};
+  const { name, description = '', price, image = 'assets/images/menu1.jpg', category } = req.body || {};
   if (!name || typeof price !== 'number') {
     return res.status(400).json({ error: 'Missing name or price' });
   }
-  const item = { id: `item_${uuidv4()}`, name, description, price, image };
+  const item = { id: `item_${uuidv4()}`, name, description, price, image, category: normalizeMenuCategory(category) };
   menu.push(item);
   writeJsonAtomic(MENU_FILE, menu);
-  res.status(201).json(item);
+  res.status(201).json(withNormalizedMenuCategory(item));
 });
 
 app.put('/api/menu/:id', requireAdmin, (req, res) => {
@@ -131,13 +147,20 @@ app.put('/api/menu/:id', requireAdmin, (req, res) => {
   const idx = menu.findIndex((m) => m.id === id);
   if (idx === -1) return res.status(404).json({ error: 'Not found' });
 
-  const { name, description, price, image } = req.body || {};
+  const { name, description, price, image, category } = req.body || {};
   if (!name || typeof price !== 'number') {
     return res.status(400).json({ error: 'Missing name or price' });
   }
-  menu[idx] = { ...menu[idx], name, description: description || '', price, image: image || menu[idx].image };
+  menu[idx] = {
+    ...menu[idx],
+    name,
+    description: description || '',
+    price,
+    image: image || menu[idx].image,
+    category: normalizeMenuCategory(category ?? menu[idx].category),
+  };
   writeJsonAtomic(MENU_FILE, menu);
-  res.json(menu[idx]);
+  res.json(withNormalizedMenuCategory(menu[idx]));
 });
 
 app.delete('/api/menu/:id', requireAdmin, (req, res) => {

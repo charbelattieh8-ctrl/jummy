@@ -12,9 +12,18 @@
 
 const API_BASE = '';
 const CART_KEY = 'dbj_cart_v1';
+const MENU_CATEGORY_SWEETS = 'sweets';
+const MENU_CATEGORY_DAILY = 'daily-platters';
 
 function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
+}
+
+function normalizeCategory(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  if (raw === MENU_CATEGORY_SWEETS) return MENU_CATEGORY_SWEETS;
+  if (raw === MENU_CATEGORY_DAILY) return MENU_CATEGORY_DAILY;
+  return MENU_CATEGORY_DAILY;
 }
 
 function normalizeLebanonPhone(value) {
@@ -68,10 +77,12 @@ async function fetchJSON(url, opts = {}) {
 }
 
 function renderMenu(menu) {
-  const host = document.getElementById('menu-items');
-  if (!host) return;
+  const dailyHost = document.getElementById('menu-items-daily');
+  const sweetsHost = document.getElementById('menu-items-sweets');
+  if (!dailyHost || !sweetsHost) return;
 
-  host.innerHTML = '';
+  dailyHost.innerHTML = '';
+  sweetsHost.innerHTML = '';
 
   menu.forEach((item, i) => {
     const card = document.createElement('div');
@@ -87,10 +98,22 @@ function renderMenu(menu) {
       <button class="btn" type="button" data-add="${item.id}" style="margin-top:0.75rem;">Add to cart</button>
     `;
 
-    host.appendChild(card);
+    const category = normalizeCategory(item.category);
+    if (category === MENU_CATEGORY_SWEETS) {
+      sweetsHost.appendChild(card);
+    } else {
+      dailyHost.appendChild(card);
+    }
   });
 
-  host.addEventListener('click', (e) => {
+  if (!dailyHost.children.length) {
+    dailyHost.innerHTML = '<p style="color:#666;">No daily platters available right now.</p>';
+  }
+  if (!sweetsHost.children.length) {
+    sweetsHost.innerHTML = '<p style="color:#666;">No sweets available right now.</p>';
+  }
+
+  document.getElementById('menu')?.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-add]');
     if (!btn) return;
     const id = btn.getAttribute('data-add');
@@ -157,9 +180,9 @@ async function loadMenu() {
   } catch (err) {
     // Fallback demo items if backend is not running
     const demo = [
-      { id: 'demo-1', name: 'Daily Special', price: 8.5, image: 'assets/images/menu1.jpg', description: 'Today\'s rotating home-cooked favourite.' },
-      { id: 'demo-2', name: 'Soups & Stews', price: 6.0, image: 'assets/images/menu2.jpg', description: 'Warm bowls simmered slowly for deep flavour.' },
-      { id: 'demo-3', name: 'Desserts', price: 4.0, image: 'assets/images/menu3.jpg', description: 'Homemade treats to sweeten your day.' },
+      { id: 'demo-1', name: 'Daily Special', price: 8.5, image: 'assets/images/menu1.jpg', description: 'Today\'s rotating home-cooked favourite.', category: MENU_CATEGORY_DAILY },
+      { id: 'demo-2', name: 'Soups & Stews', price: 6.0, image: 'assets/images/menu2.jpg', description: 'Warm bowls simmered slowly for deep flavour.', category: MENU_CATEGORY_DAILY },
+      { id: 'demo-3', name: 'Desserts', price: 4.0, image: 'assets/images/menu3.jpg', description: 'Homemade treats to sweeten your day.', category: MENU_CATEGORY_SWEETS },
     ];
     renderMenu(demo);
   }
