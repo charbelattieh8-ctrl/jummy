@@ -14,6 +14,7 @@ const API_BASE = '';
 const CART_KEY = 'dbj_cart_v1';
 const MENU_CATEGORY_SWEETS = 'sweets';
 const MENU_CATEGORY_DAILY = 'daily-platters';
+const MENU_SKELETON_COUNT = 3;
 
 function money(n) {
   return `$${Number(n || 0).toFixed(2)}`;
@@ -76,6 +77,35 @@ async function fetchJSON(url, opts = {}) {
   return data;
 }
 
+function createMenuSkeletonCard() {
+  const card = document.createElement('div');
+  card.className = 'menu-item menu-item-skeleton';
+  card.setAttribute('aria-hidden', 'true');
+  card.innerHTML = `
+    <div class="skeleton skeleton-media"></div>
+    <div class="skeleton skeleton-title"></div>
+    <div class="skeleton skeleton-text"></div>
+    <div class="skeleton skeleton-text short"></div>
+    <div class="skeleton skeleton-price"></div>
+    <div class="skeleton skeleton-button"></div>
+  `;
+  return card;
+}
+
+function renderMenuSkeletons(count = MENU_SKELETON_COUNT) {
+  const dailyHost = document.getElementById('menu-items-daily');
+  const sweetsHost = document.getElementById('menu-items-sweets');
+  if (!dailyHost || !sweetsHost) return;
+
+  dailyHost.innerHTML = '';
+  sweetsHost.innerHTML = '';
+
+  for (let i = 0; i < count; i += 1) {
+    dailyHost.appendChild(createMenuSkeletonCard());
+    sweetsHost.appendChild(createMenuSkeletonCard());
+  }
+}
+
 function renderMenu(menu) {
   const dailyHost = document.getElementById('menu-items-daily');
   const sweetsHost = document.getElementById('menu-items-sweets');
@@ -91,7 +121,7 @@ function renderMenu(menu) {
     card.setAttribute('data-aos-delay', String(Math.min(i * 80, 240)));
 
     card.innerHTML = `
-      <img src="${item.image || 'assets/images/menu1.jpg'}" alt="${item.name}">
+      <img src="${item.image || 'assets/images/menu1.jpg'}" alt="${item.name}" loading="lazy" decoding="async">
       <h3>${item.name}</h3>
       <p>${item.description || ''}</p>
       <p style="margin-top:0.75rem; font-weight:700; color:#111;">${money(item.price)}</p>
@@ -173,6 +203,7 @@ function closeCart() {
 }
 
 async function loadMenu() {
+  renderMenuSkeletons();
   try {
     const menu = await fetchJSON(`${API_BASE}/api/menu`);
     renderMenu(menu);
